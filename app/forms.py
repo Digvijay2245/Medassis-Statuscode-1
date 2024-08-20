@@ -4,6 +4,7 @@ from wtforms.validators import Length, Email, Optional, DataRequired, Validation
 from app import app
 from app.models import User
 
+
 class DiabetesForm(FlaskForm):
 
     username=StringField('Name:',validators=[DataRequired(),Length(max=100)])
@@ -110,9 +111,6 @@ class SignInForm(FlaskForm):
     password=PasswordField('Password',validators=[DataRequired()],render_kw={"placeholder": "Enter your password"})
     submit=SubmitField('Login')
 
-from flask_wtf import FlaskForm
-from wtforms import IntegerField, SubmitField
-from wtforms.validators import DataRequired
 
 
 class OtpForm(FlaskForm):
@@ -148,3 +146,13 @@ class FeedbackForm(FlaskForm):
 class ChatbotForm(FlaskForm):
     botinput=StringField('',validators=[DataRequired()],render_kw={"placeholder": "Send Message..."})
     submit=SubmitField('Send')
+
+class DietChart(FlaskForm):
+    age=IntegerField('Age: ',validators=[DataRequired()],render_kw={"placeholder": "Your Age"})
+    weight=FloatField('Weight: ',validators=[DataRequired()],render_kw={"placeholder":"Your weight"})
+    height=FloatField('Weight: ',validators=[DataRequired()],render_kw={"placeholder":"Your weight"})
+    disease=StringField('Disease: ',validators=[DataRequired()],render_kw={'placeholder':"Disease..."})
+    allergy=StringField('Allergy: ',validators=[DataRequired()],render_kw={'placeholder':"Allergies (if any)"})
+    preference=SelectField('Preferrence: ',validators=[DataRequired()],choices=['Veg','Non-veg'])
+    region=StringField('Disease: ',validators=[DataRequired()],render_kw={'placeholder':"Your region"})
+    submit=SubmitField('Prepare Chart')

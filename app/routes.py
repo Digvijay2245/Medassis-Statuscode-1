@@ -1,6 +1,6 @@
 from app import app,db, session
 from flask import render_template, redirect, url_for, flash, request, jsonify
-from app.forms import DiabetesForm,OtpForm,SignInForm,SignUpForm,LiverForm,KidneyForm,XrayForm,ReminderForm,UserProfileForm,FeedbackForm,ChatbotForm
+from app.forms import DiabetesForm,OtpForm,SignInForm,SignUpForm,LiverForm,KidneyForm,XrayForm,ReminderForm,UserProfileForm,FeedbackForm,ChatbotForm,DietChart
 from app.models import User, Checkup, Kidney, Liver,Message, Reminder, Doctor
 from app.mails import send_email
 import numpy as np
@@ -142,8 +142,14 @@ def api_test():
 @app.route('/dashboard',methods=['GET','POST'])
 @login_required_user
 def dashboard():
+    flash('This is a flash message with bounce effect!',category='success')
 
     feedback_form = FeedbackForm()
+    dietchart=DietChart()
+    
+    if dietchart.validate_on_submit():
+        return redirect(url_for('diet_chart_maker'))
+    
     if feedback_form.validate_on_submit():
         response = feedback_form.feedback.data
         print(response)
@@ -155,7 +161,19 @@ def dashboard():
     if not current_user:
         return redirect(url_for("login"))
 
-    return render_template('dashboard.html', user_data=current_user,feedback_form=feedback_form)
+    return render_template('dashboard.html', user_data=current_user,feedback_form=feedback_form,dietchart=dietchart)
+
+@app.route('/diet_chart')
+@login_required_user
+def diet_chart_maker():
+    feedback_form = FeedbackForm()
+    if feedback_form.validate_on_submit():
+        response = feedback_form.feedback.data
+        print(response)
+        send_email("anujkaushal1068@gmail.com", f"Feedback from {get_current_user().username}", f"From : {get_current_user().email_address}<br/>Response : {feedback_form.feedback.data}")
+        print("sent mail")
+        return redirect(url_for('diet_chart_maker'))
+    return render_template('chart_diet.html',user_data=get_current_user(),feedback_form=feedback_form) 
 
 @app.route('/doctor-dashboard',methods=['GET','POST'])
 @login_required_doctor
@@ -227,7 +245,7 @@ def community():
         print(response)
         send_email("anujkaushal1068@gmail.com", f"Feedback from {get_current_user().username}", f"From : {get_current_user().email_address}\nResponse : {feedback_form.feedback.data}")
         print("sent mail")
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('community'))
     return render_template('community.html',user_data=get_current_user().username, feedback_form=feedback_form)
 
 @app.route('/map',methods=['GET','POST'])
