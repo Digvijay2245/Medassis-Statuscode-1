@@ -1,0 +1,17 @@
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+{% for category, message in messages %}
+<div class="toast {% if category == 'error' %} border border-red-700  bg-red-200 text-red-700 {% else %} bg-green-200 border border-green-700 text-green-700 {% endif %}" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-header">
+        <img src="..." class="rounded me-2" alt="...">
+        <strong class="me-auto">{{ category }}</strong>
+        <!-- <small>11 mins ago</small> -->
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+    <div class="toast-body">
+                {{ message }}
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+{% endwith %}
