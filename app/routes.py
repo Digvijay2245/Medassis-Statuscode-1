@@ -24,6 +24,7 @@ from app.foodResponse import check_food_safety
 from app.medicineFunction import get_medicine_information_from_image
 from app.hospitalFunction import generate_hospital_map
 from functools import wraps
+from app.diet_chart import generate_diet_chart
 
 model = pickle.load(open('app/static/model.pkl', 'rb'))
 scaler = pickle.load(open('app/static/scaler.pkl', 'rb'))
@@ -132,28 +133,46 @@ def api_get_med_response():
 
     return jsonify({"error": "Invalid request method"}), 405
 
-
+     
 
 @app.route('/api/test', methods=['GET'])
 def api_test():
     return jsonify({"message": "API is working!"})
 
 
-@app.route('/dashboard',methods=['GET','POST'])
+@app.route('/dashboard', methods=['GET', 'POST'])
 @login_required_user
 def dashboard():
-    flash('This is a flash message with bounce effect!',category='success')
+    flash('This is a flash message with bounce effect!', category='success')
 
     feedback_form = FeedbackForm()
-    dietchart=DietChart()
-    
+    dietchart = DietChart()
+
     if dietchart.validate_on_submit():
+        age = dietchart.age.data
+        weight = dietchart.weight.data
+        height = dietchart.height.data
+        disease = dietchart.disease.data
+        allergy = dietchart.allergy.data
+        preference = dietchart.preference.data
+        region = dietchart.region.data
+
+        response = generate_diet_chart(age, weight, height, disease, allergy, preference, region)
+        
+        print(response)
+        
+        session['diet_chart_response'] = response
+
         return redirect(url_for('diet_chart_maker'))
-    
+
     if feedback_form.validate_on_submit():
         response = feedback_form.feedback.data
         print(response)
-        send_email("anujkaushal1068@gmail.com", f"Feedback from {get_current_user().username}", f"From : {get_current_user().email_address}<br/>Response : {feedback_form.feedback.data}")
+        send_email(
+            "anujkaushal1068@gmail.com", 
+            f"Feedback from {get_current_user().username}", 
+            f"From: {get_current_user().email_address}<br/>Response: {feedback_form.feedback.data}"
+        )
         print("sent mail")
         return redirect(url_for('dashboard'))
     
@@ -161,11 +180,16 @@ def dashboard():
     if not current_user:
         return redirect(url_for("login"))
 
-    return render_template('dashboard.html', user_data=current_user,feedback_form=feedback_form,dietchart=dietchart)
+    return render_template('dashboard.html', user_data=current_user, feedback_form=feedback_form,dietchart=dietchart)
 
-@app.route('/diet_chart')
-@login_required_user
+
+@app.route('/diet_chart_maker')
 def diet_chart_maker():
+    response = session.get('diet_chart_response')
+    if response:
+        print(response)
+        session.pop('diet_chart_response', None)
+
     feedback_form = FeedbackForm()
     if feedback_form.validate_on_submit():
         response = feedback_form.feedback.data
@@ -173,7 +197,8 @@ def diet_chart_maker():
         send_email("anujkaushal1068@gmail.com", f"Feedback from {get_current_user().username}", f"From : {get_current_user().email_address}<br/>Response : {feedback_form.feedback.data}")
         print("sent mail")
         return redirect(url_for('diet_chart_maker'))
-    return render_template('chart_diet.html',user_data=get_current_user(),feedback_form=feedback_form) 
+    return render_template('chart_diet.html', response=response, user_data=get_current_user(), feedback_form=feedback_form)
+
 
 @app.route('/doctor-dashboard',methods=['GET','POST'])
 @login_required_doctor
