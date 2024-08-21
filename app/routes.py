@@ -25,6 +25,7 @@ from app.medicineFunction import get_medicine_information_from_image
 from app.hospitalFunction import generate_hospital_map
 from functools import wraps
 from app.diet_chart import generate_diet_chart
+from app.make_table import process_text_to_html
 
 model = pickle.load(open('app/static/model.pkl', 'rb'))
 scaler = pickle.load(open('app/static/scaler.pkl', 'rb'))
@@ -197,6 +198,7 @@ def diet_chart_maker():
         send_email("anujkaushal1068@gmail.com", f"Feedback from {get_current_user().username}", f"From : {get_current_user().email_address}<br/>Response : {feedback_form.feedback.data}")
         print("sent mail")
         return redirect(url_for('diet_chart_maker'))
+    response = process_text_to_html(response)
     return render_template('chart_diet.html', response=response, user_data=get_current_user(), feedback_form=feedback_form)
 
 
