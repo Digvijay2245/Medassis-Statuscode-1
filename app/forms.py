@@ -150,9 +150,9 @@ class ChatbotForm(FlaskForm):
 class DietChart(FlaskForm):
     age=IntegerField('Age: ',validators=[DataRequired()],render_kw={"placeholder": "Your Age"})
     weight=FloatField('Weight: ',validators=[DataRequired()],render_kw={"placeholder":"Your weight"})
-    height=FloatField('Weight: ',validators=[DataRequired()],render_kw={"placeholder":"Your weight"})
+    height=FloatField('Height: ',validators=[DataRequired()],render_kw={"placeholder":"Your height"})
     disease=StringField('Disease: ',validators=[DataRequired()],render_kw={'placeholder':"Disease..."})
     allergy=StringField('Allergy: ',validators=[DataRequired()],render_kw={'placeholder':"Allergies (if any)"})
-    preference=SelectField('Preferrence: ',validators=[DataRequired()],choices=['Veg','Non-veg'])
-    region=StringField('Disease: ',validators=[DataRequired()],render_kw={'placeholder':"Your region"})
+    preference=StringField('Preferrence: ',validators=[DataRequired()],render_kw={'placeholder':"Veg/Non-Veg..."})
+    region=StringField('Region: ',validators=[DataRequired()],render_kw={'placeholder':"Your region"})
     submit=SubmitField('Prepare Chart')
