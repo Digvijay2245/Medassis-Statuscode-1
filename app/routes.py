@@ -1,6 +1,6 @@
 from app import app,db, session
 from flask import render_template, redirect, url_for, flash, request, jsonify
-from app.forms import DiabetesForm,OtpForm,SignInForm,SignUpForm,LiverForm,KidneyForm,XrayForm,ReminderForm,UserProfileForm,FeedbackForm,ChatbotForm,DietChart
+from app.forms import DiabetesForm,OtpForm,SignInForm,SignUpForm,LiverForm,KidneyForm,XrayForm,ReminderForm,UserProfileForm,FeedbackForm,ChatbotForm,DietChart,DoctorProfileForm
 from app.models import User, Checkup, Kidney, Liver,Message, Reminder, Doctor
 from app.mails import send_email
 import numpy as np
@@ -25,7 +25,7 @@ from app.medicineFunction import get_medicine_information_from_image
 from app.hospitalFunction import generate_hospital_map
 from functools import wraps
 from app.diet_chart import generate_diet_chart
-from app.make_table import process_text_to_html
+from app.make_table import format_response_as_table
 
 model = pickle.load(open('app/static/model.pkl', 'rb'))
 scaler = pickle.load(open('app/static/scaler.pkl', 'rb'))
@@ -62,6 +62,11 @@ def login_required_doctor(f):
             return redirect(url_for('doctorlogin'))
         return f(*args, **kwargs)
     return decorated_function
+
+valid_room_codes = {}
+
+def generate_room_code():
+    return str(random.randint(1000, 9999))
 
 phone=0
 name=[]
@@ -198,7 +203,7 @@ def diet_chart_maker():
         send_email("anujkaushal1068@gmail.com", f"Feedback from {get_current_user().username}", f"From : {get_current_user().email_address}<br/>Response : {feedback_form.feedback.data}")
         print("sent mail")
         return redirect(url_for('diet_chart_maker'))
-    response = process_text_to_html(response)
+    response = format_response_as_table(response)
     return render_template('chart_diet.html', response=response, user_data=get_current_user(), feedback_form=feedback_form)
 
 
@@ -263,6 +268,46 @@ def profile():
 
     return render_template('profile.html', user_data=get_current_user(),user=user_data,profileset=profileset,feedback_form=feedback_form)
 
+@app.route('/doctor-profile',methods=['GET','POST'])
+@login_required_doctor
+def doctor_profile():
+    docform=DoctorProfileForm()
+    feedback_form=FeedbackForm()
+    if feedback_form.validate_on_submit():
+        response = feedback_form.feedback.data
+        print(response)
+        send_email("anujkaushal1068@gmail.com", f"Feedback from {get_current_doctor().username}", f"From : {get_current_doctor().email_address}\nResponse : {feedback_form.feedback.data}")
+        print("sent mail")
+        return redirect(url_for('doctor_profile'))
+
+    user=Doctor.query.filter_by(id=get_current_doctor().id).first()
+    if docform.validate_on_submit():
+        print("I came here")
+        if docform.gender.data:
+            user.gender = docform.gender.data
+        if docform.age.data:
+            user.age = docform.age.data
+        if docform.available.data:
+            print(docform.available.data)
+
+            user.availability = docform.available.data
+        if docform.specialization.data:
+            user.specialization = docform.specialization.data
+        if docform.pincode.data:
+            user.pincode = docform.pincode.data
+        if docform.phone.data:
+            user.phone = docform.phone.data
+        if docform.city.data:
+            user.city = docform.city.data
+
+        print(user.gender, user.age)
+        
+        db.session.commit()
+        flash('Profile updated successfully!', 'success')
+        return redirect(url_for('doctor_profile'))
+
+    return render_template('doctor_profile.html',user=user,user_data=get_current_doctor(),docform=docform,feedback_form=feedback_form)
+
 @app.route('/community-support',methods=['GET','POST'])
 @login_required_user
 def community():
@@ -296,6 +341,8 @@ def handle_send_message(data):
     
     print(f"Received message: {data}")
     try:
+        print(data.get('timestamp'))
+        
         timestamp = datetime.fromisoformat(data.get('timestamp'))  
         print(timestamp)
         # Convert ISO string to datetime
@@ -329,6 +376,33 @@ def load_messages():
 @app.route('/doc_or_user')
 def user_doc():
     return render_template('user_or_doctor.html')
+
+@app.route('/appointment', methods=['GET', 'POST'])
+def appointment():
+    doctors = Doctor.query.all()
+
+    # Convert doctors to a list of dictionaries for JSON serialization
+    doctors_data = [
+        {
+            'id': doctor.id,
+            'username': doctor.username,
+            'specialization': doctor.specialization,
+            'availability': doctor.availability,
+            'phone': doctor.phone,
+            'city': doctor.city,
+            'pincode': doctor.pincode
+        }
+        for doctor in doctors
+    ]
+
+    feedback_form = FeedbackForm()
+    if feedback_form.validate_on_submit():
+        response = feedback_form.feedback.data
+        send_email("anujkaushal1068@gmail.com", f"Feedback from {get_current_user().username}", f"From : {get_current_user().email_address}\nResponse : {response}")
+        return redirect(url_for('appointment'))
+
+    return render_template('appointment.html', user_data=get_current_user(), feedback_form=feedback_form, doctors_data=doctors_data)
+
 
 @app.route('/sign-in', methods=['GET','POST'])
 def login():
@@ -370,22 +444,25 @@ def signup():
     return render_template('signup.html',signup=form)
 
 
-@app.route('/doctor-sign-in', methods=['GET','POST'])
+@app.route('/doctor-sign-in', methods=['GET', 'POST'])
 def doctorlogin():
-    form=SignInForm()
+    form = SignInForm()
     if form.validate_on_submit():
         with app.app_context():
-            attempted_user=User.query.filter_by(username=form.username.data).first()
-            if attempted_user and attempted_user.check_password_correction(attempted_password=form.password.data):
-                # login_user(attempted_user)
-                session['doctor_id']=attempted_user.id
-                flash(f'You have successfully logged in as : {attempted_user.username}' , category='success')
-                return redirect(url_for('doctor_dashboard'))
-            else:
-                flash(f'Username and password do not match ! Please try again', category='error')
-                flash(f'OTP does not match', category='error')
+            attempted_user = Doctor.query.filter_by(username=form.username.data).first()
+            try:
+                if attempted_user and attempted_user.check_password_correction(attempted_password=form.password.data):
+                    session['doctor_id'] = attempted_user.id
+                    flash(f'You have successfully logged in as: {attempted_user.username}', category='success')
+                    return redirect(url_for('doctor_dashboard'))
+                else:
+                    flash('Username and password do not match! Please try again.', category='error')
+            except Exception as e:
+                flash(f'An error occurred: {str(e)}', category='error')
+                flash('OTP does not match', category='error')
 
-    return render_template('doctor_login.html',signin=form)
+    return render_template('doctor_login.html', signin=form)
+
 
 
 @app.route('/doctor-sign-up', methods=['GET','POST'])
@@ -493,15 +570,39 @@ def doctor_otp():
 @app.route('/meeting')
 @login_required_doctor
 def meeting():
+    room_id = request.args.get("roomID")
+    if not room_id:
+        room_id = generate_room_code()
+    print(f"Room ID: {room_id}")
     return render_template("meeting.html", user_data=get_current_doctor().username)
 
-@app.route('/join', methods=['GET','POST'])
-@login_required_user
+
+@app.route('/join', methods=['GET', 'POST'])
 def join():
-    if request.method=="POST":
-        room_id=request.form.get("roomID")
-        return redirect(f"/meeting?roomID={room_id}")
+    if request.method == "POST":
+        room_id = request.form.get("roomID")
+        if room_id in valid_room_codes:
+            return redirect(f"/meeting?roomID={room_id}")
+        else:
+            flash("Invalid room code. Please try again.")
+            return redirect('/join')
     return render_template('join.html')
+
+@app.route('/create_room', methods=['GET'])
+def create_room():
+    room_id = generate_room_code()
+    valid_room_codes[room_id] = True
+    print(f"Generated Room Code: {room_id}")
+    return redirect('/join')
+
+
+# @app.route('/join', methods=['GET','POST'])
+# @login_required_user
+# def join():
+#     if request.method=="POST":
+#         room_id=request.form.get("roomID")
+#         return redirect(f"/meeting?roomID={room_id}")
+#     return render_template('join.html')
 
 @app.route('/diabetes-form', methods=['GET','POST'])
 def diabetes():

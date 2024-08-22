@@ -1,50 +1,157 @@
-import re
-
-def process_text_to_html(text):
-    # Convert markdown-style bold (e.g., **text**) to HTML <strong> tags
-    formatted_text = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text)
+def format_response_as_table(raw_response):
+    # Split the response by newlines
+    lines = raw_response.split("\n")
     
-    # Function to generate a table from headers and rows
-    def create_table(headers, rows):
-        headers_html = "".join([f"<th>{header}</th>" for header in headers])
-        rows_html = "".join([
-            "<tr>" + "".join([f"<td>{cell}</td>" for cell in row]) + "</tr>"
-            for row in rows
-        ])
-        return f"<table border='1' style='width:100%; border-collapse: collapse;'><thead><tr>{headers_html}</tr></thead><tbody>{rows_html}</tbody></table>"
-
-    # Define section headings
-    headings = ['Meal', 'Dish', 'Quantity', 'Calories']
-    content = []
-    index = 0
+    # Initialize HTML sections
+    formatted_html = ''
+    table_html = ''
+    formatted_html += "<div style='padding-top: 10px;'>"
+    in_table = False
+    after_heading = False  # Flag to check if we are processing the first line after ##
     
-    # Parsing each section
-    while index < len(formatted_text):
-        for heading in headings:
-            if heading in formatted_text[index:]:
-                # Find the start and end of the current section
-                start = formatted_text.find(heading, index)
-                end = len(formatted_text)
-                
-                # Find the next heading or end of the text
-                next_heading_pos = min((formatted_text.find(h, start + len(heading)) for h in headings if formatted_text.find(h, start + len(heading)) > start), default=end)
-                section_content = formatted_text[start:next_heading_pos].strip()
-                
-                # Extract headers and rows
-                lines = section_content.split('\n')
-                headers = lines[0].strip().split('|')
-                rows = [line.split('|') for line in lines[1:] if line.strip()]
-                
-                # Create and append the table
-                content.append(create_table(headers, rows))
-                
-                # Move the index to the end of the current section
-                index = next_heading_pos
-                break
-        else:
-            # If no heading found, just append the rest of the text
-            content.append(formatted_text[index:])
-            break
+    def bold_text(text):
+        """Helper function to make text between ** ** bold."""
+        formatted_line = ""
+        parts = text.split()
+        for i, part in enumerate(parts):
+            if i % 2 == 1:  # Odd indices are between ** **
+                formatted_line += f"<strong>{part}</strong>"
+            else:
+                formatted_line += part
+        return formatted_line
 
-    # Join content with new lines
-    return "<br>".join(content)
+    def escape_single_asterisk(text):
+        """Helper function to escape single asterisks."""
+        return text.replace("*", "&#42;")
+
+    for line in lines:
+        line = line.strip()
+        
+        # Check for the heading indicator
+        if line.startswith("##"):
+            after_heading = True
+            continue  # Skip the current line, it's just the heading indicator
+        
+        if after_heading:
+            # Wrap the first line after ## with <h3> tags
+            formatted_html += f'<h3>{line}</h3>'
+            after_heading = False  # Reset the flag after processing
+            continue
+        
+        # Formatting the response text before the table
+        if not line.startswith("|") and not in_table:
+            # Make only the text between ** ** bold
+            formatted_line = bold_text(line)
+            formatted_html += f'<p>{formatted_line}</p>'
+        
+        # Start table section
+        if line.startswith("|---"):
+            in_table = True
+            table_html += '<table style="width:100%; border-collapse: collapse;"><thead><tr>'
+            continue
+        
+        # Table content handling
+        if line.startswith("|") and in_table:
+            if "Meal" in line and not "</th>" in table_html:
+                headers = line.split("|")[1:-1]  # Split and ignore the leading and trailing pipes
+                for header in headers:
+                    table_html += f'<th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f4f4f4;">{bold_text(header.strip())}</th>'
+                table_html += '</tr></thead><tbody>'
+            else:
+                # Table rows
+                columns = line.split("|")[1:-1]
+                table_html += '<tr>'
+                for column in columns:
+                    formatted_column = bold_text(escape_single_asterisk(column.strip()))
+                    table_html += f'<td style="border: 1px solid #ddd; padding: 8px;">{formatted_column}</td>'
+                table_html += '</tr>'
+        
+        elif in_table and line == "":
+            in_table = False
+            table_html += '</tbody></table>'
+            formatted_html += table_html
+    
+    if '</tbody></table>' not in table_html:
+        table_html += '</tbody></table>'
+        formatted_html += table_html
+    formatted_html += "</div>"
+    
+    return format_response_as_table(raw_response)
+    # Split the response by newlines
+    lines = raw_response.split("\n")
+    
+    # Initialize HTML sections
+    formatted_html = ''
+    table_html = ''
+    formatted_html += "<div style='padding-top: 10px;'>"
+    in_table = False
+    after_heading = False  # Flag to check if we are processing the first line after ##
+    
+    def bold_text(text):
+        """Helper function to make text between ** ** bold."""
+        formatted_line = ""
+        parts = text.split("")
+        for i, part in enumerate(parts):
+            if i % 2 == 1:  # Odd indices are between ** **
+                formatted_line += f"<strong>{part}</strong>"
+            else:
+                formatted_line += part
+        return formatted_line
+
+    def escape_single_asterisk(text):
+        """Helper function to escape single asterisks."""
+        return text.replace("*", "&#42;")
+
+    for line in lines:
+        line = line.strip()
+        
+        # Check for the heading indicator
+        if line.startswith("##"):
+            after_heading = True
+            continue  # Skip the current line, it's just the heading indicator
+        
+        if after_heading:
+            # Wrap the first line after ## with <h3> tags
+            formatted_html += f'<h3>{line}</h3>'
+            after_heading = False  # Reset the flag after processing
+            continue
+        
+        # Formatting the response text before the table
+        if not line.startswith("|") and not in_table:
+            # Make only the text between ** ** bold
+            formatted_line = bold_text(line)
+            formatted_html += f'<p>{formatted_line}</p>'
+        
+        # Start table section
+        if line.startswith("|---"):
+            in_table = True
+            table_html += '<table style="width:100%; border-collapse: collapse;"><thead><tr>'
+            continue
+        
+        # Table content handling
+        if line.startswith("|") and in_table:
+            if "Meal" in line and not "</th>" in table_html:
+                headers = line.split("|")[1:-1]  # Split and ignore the leading and trailing pipes
+                for header in headers:
+                    table_html += f'<th style="border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f4f4f4;">{bold_text(header.strip())}</th>'
+                table_html += '</tr></thead><tbody>'
+            else:
+                # Table rows
+                columns = line.split("|")[1:-1]
+                table_html += '<tr>'
+                for column in columns:
+                    formatted_column = bold_text(escape_single_asterisk(column.strip()))
+                    table_html += f'<td style="border: 1px solid #ddd; padding: 8px;">{formatted_column}</td>'
+                table_html += '</tr>'
+        
+        elif in_table and line == "":
+            in_table = False
+            table_html += '</tbody></table>'
+            formatted_html += table_html
+    
+    if '</tbody></table>' not in table_html:
+        table_html += '</tbody></table>'
+        formatted_html += table_html
+    formatted_html += "</div>"
+    
+    return formatted_html
