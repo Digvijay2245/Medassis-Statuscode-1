@@ -136,7 +136,7 @@
                     <div class="knowmore">
                         
 
-                            <i class="fa-solid fa-arrow-right"></i>
+                            <a href="{{ url_for('doctor_profile') }}" style="color: black;"><i class="fa-solid fa-arrow-right"></i></a>
                         <!-- </a> -->
 
                     </div>
@@ -146,9 +146,9 @@
     </section>
     <main>
 
-        <!-- Main content goes here -->
+
         {% block content %}{% endblock %}
-        <!-- {% include('flash.html') %} -->
+        
 
     </main>
 

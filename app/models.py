@@ -37,6 +37,13 @@ class Doctor(db.Model, UserMixin):
     username=db.Column(db.String(length=30), nullable=False, unique=True)
     email_address=db.Column(db.String(length=50), nullable=False, unique=True)
     password_hash=db.Column(db.String(length=60), nullable=False)
+    specialization=db.Column(db.String(length=100))
+    pincode=db.Column(db.Integer())
+    gender=db.Column(db.String(length=50), nullable=True)
+    age=db.Column(db.Integer())
+    availability=db.Column(db.String(), default=True)
+    phone=db.Column(db.Integer(), nullable=True)
+    city=db.Column(db.String(length=50), nullable=True)
 
     @property
     def password(self):

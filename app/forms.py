@@ -139,6 +139,17 @@ class UserProfileForm(FlaskForm):
     city = StringField("City", validators=[Optional()])
     submit = SubmitField('Update Profile')
 
+
+class DoctorProfileForm(FlaskForm):
+    gender=RadioField('Gender:',validators=[Optional()],choices=['Male','Female'])
+    age = IntegerField('Age', validators=[Optional()])
+    specialization = StringField('Specialization: ',validators=[Optional()])
+    pincode = IntegerField('Pincode', validators=[Optional()])
+    phone = IntegerField('Phone', validators=[Optional()])
+    available=RadioField('Available:',validators=[Optional()],choices=['Yes','No'])
+    city = StringField("City", validators=[Optional()])
+    submit = SubmitField('Update Profile')
+
 class FeedbackForm(FlaskForm):
     feedback=StringField('',validators=[DataRequired(),Length(max=200)], render_kw={"placeholder": "Enter your feedback here..."})
     submit=SubmitField('Send Feedback')
