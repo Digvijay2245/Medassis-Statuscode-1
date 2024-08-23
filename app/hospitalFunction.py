@@ -108,6 +108,6 @@ def generate_hospital_map(pin_code):
     ).add_to(map_)
 
     file_name = f'hospitals.html'
-    map_.save(f"C:/myfolder/Medassis-Statuscode/app/templates/{file_name}")
+    map_.save(f"./app/templates/{file_name}")
     print(f"Interactive map with user location has been saved as '{file_name}'")
 
