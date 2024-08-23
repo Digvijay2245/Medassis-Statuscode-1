@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog Page</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        *{
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: white;
+            margin: 0;
+            padding: 0;
+            color: #118811;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .news_box{
+           display: grid;
+           grid-template-columns: repeat(2,1fr);
+           -ms-grid-column-align: end;
+           width: 100%;
+        }
+
+        .news1, .news2, .news3, .news4, .news5, .news6 {
+            width: 95%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: flex-start;
+            margin: 20px;
+            margin-top: 0;
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        h1{
+            font-size: 3rem;
+            font-weight: 600;
+            margin-top: 1rem;
+            margin-bottom: 1.5rem;
+            background-color: white;
+            width: fit-content;
+            border-radius: 10px;
+            padding: 15px 15px;
+            line-height: 0.96;
+        }
+
+        .news1:hover, .news2:hover, .news3:hover, .news4:hover, .news5:hover, .news6:hover {
+            background-color: white;
+        }
+        .news1 img, .news2 img, .news3 img, .news4 img, .news5 img, .news6 img {
+            width: 100%;
+            object-fit: cover;
+            border-top-right-radius: 20px;
+            border-top-left-radius: 20px;
+            border-radius: 20px;
+        }
+        .news1-content, .news2-content, .news3-content, .news4-content, .news5-content, .news6-content {
+            flex-grow: 1;
+            margin-top: 0.5rem;
+        }
+        .news1-title, .news2-title, .news3-title, .news4-title, .news5-title, .news6-title {
+            padding: 1rem;
+            color: white;
+            background-color: #118811;
+            font-size: 1.5rem;
+            font-weight: 500;
+            border-bottom-right-radius: 20px;
+            border-bottom-left-radius: 20px;
+            border-radius: 20px;
+        }
+        .news1-text, .news2-text, .news3-text, .news4-text, .news5-text, .news6-text {
+            display: none;
+            margin-top: 10px;
+            font-size: 1.2rem;
+            font-weight: 400;
+            color: black;
+        }
+        .news1.active .news1-text, .news2.active .news2-text, .news3.active .news3-text, .news4.active .news4-text, .news5.active .news5-text, .news6.active .news6-text {
+            display: block;
+        }
+
+        @media (max-width:1200px){
+            .news_box{
+                grid-template-columns: repeat(1,1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>NEWS:</h1>
+        <div class="news_box">
+            <div class="news1">
+                <img src="medassis/Medassis-2.0-main/app/static/assests/dibeties.webp" alt="news Image" class="img">
+                <div class="news1-content">
+                    <h2 class="news1-title">Lorem ipsum dolor sit amet consectetur adipisicing elit. Nostrum, repellat.</h2>
+                    <p class="news1-text">Lorem ipsum dolor sit amet consectetur adipisicing elit. Recusandae illo atque ea, repellendus ab accusantium facere, sint similique blanditiis qui iusto, labore nulla? Recusandae assumenda praesentium, explicabo minus quos commodi et soluta! Corrupti tempore exercitationem veritatis rem, quis quidem iste assumenda ipsam facilis, nemo facere, sapiente laborum natus! Rem, itaque.</p>
+                </div>
+            </div>
+            <div class="news2">
+                <img src="medassis/Medassis-2.0-main/app/static/assests/dibeties.webp" alt="news Image" class="img">
+                <div class="news2-content">
+                    <h2 class="news2-title">Lorem ipsum dolor sit amet consectetur adipisicing elit. Vitae, qui.</h2>
+                    <p class="news2-text">Lorem ipsum dolor sit amet consectetur adipisicing elit. Recusandae illo atque ea, repellendus ab accusantium facere, sint similique blanditiis qui iusto, labore nulla? Recusandae assumenda praesentium, explicabo minus quos commodi et soluta! Corrupti tempore exercitationem veritatis rem, quis quidem iste assumenda ipsam facilis, nemo facere, sapiente laborum natus! Rem, itaque.</p>
+                </div>
+            </div>
+            <div class="news3">
+                <img src="medassis/Medassis-2.0-main/app/static/assests/dibeties.webp" alt="news Image" class="img">
+                <div class="news3-content">
+                    <h2 class="news3-title">Lorem ipsum dolor, sit amet consectetur adipisicing elit. Facere, minima.</h2>
+                    <p class="news3-text">Lorem ipsum dolor sit amet consectetur adipisicing elit. Recusandae illo atque ea, repellendus ab accusantium facere, sint similique blanditiis qui iusto, labore nulla? Recusandae assumenda praesentium, explicabo minus quos commodi et soluta! Corrupti tempore exercitationem veritatis rem, quis quidem iste assumenda ipsam facilis, nemo facere, sapiente laborum natus! Rem, itaque.</p>
+                </div>
+            </div>
+            <div class="news4">
+                <img src="medassis/Medassis-2.0-main/app/static/assests/dibeties.webp" alt="news Image" class="img">
+                <div class="news4-content">
+                    <h2 class="news4-title">Lorem ipsum dolor, sit amet consectetur adipisicing elit. Facere, minima.</h2>
+                    <p class="news4-text">Lorem ipsum dolor sit amet consectetur adipisicing elit. Recusandae illo atque ea, repellendus ab accusantium facere, sint similique blanditiis qui iusto, labore nulla? Recusandae assumenda praesentium, explicabo minus quos commodi et soluta! Corrupti tempore exercitationem veritatis rem, quis quidem iste assumenda ipsam facilis, nemo facere, sapiente laborum natus! Rem, itaque.</p>
+                </div>
+            </div>
+            <div class="news5">
+                <img src="medassis/Medassis-2.0-main/app/static/assests/dibeties.webp" alt="news Image" class="img">
+                <div class="news5-content">
+                    <h2 class="news5-title">Lorem ipsum dolor, sit amet consectetur adipisicing elit. Facere, minima.</h2>
+                    <p class="news5-text">Lorem ipsum dolor sit amet consectetur adipisicing elit. Recusandae illo atque ea, repellendus ab accusantium facere, sint similique blanditiis qui iusto, labore nulla? Recusandae assumenda praesentium, explicabo minus quos commodi et soluta! Corrupti tempore exercitationem veritatis rem, quis quidem iste assumenda ipsam facilis, nemo facere, sapiente laborum natus! Rem, itaque.</p>
+                </div>
+            </div>
+            <div class="news6">
+                <img src="medassis/Medassis-2.0-main/app/static/assests/dibeties.webp" alt="news Image" class="img">
+                <div class="news6-content">
+                    <h2 class="news6-title">Lorem ipsum dolor sit amet consectetur adipisicing elit. Minima, possimus!</h2>
+                    <p class="news6-text">Lorem ipsum dolor sit amet consectetur adipisicing elit. Recusandae illo atque ea, repellendus ab accusantium facere, sint similique blanditiis qui iusto, labore nulla? Recusandae assumenda praesentium, explicabo minus quos commodi et soluta! Corrupti tempore exercitationem veritatis rem, quis quidem iste assumenda ipsam facilis, nemo facere, sapiente laborum natus! Rem, itaque.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.querySelector('.news1').addEventListener('click', function() {
+            this.classList.toggle('active');
+        });
+        document.querySelector('.news2').addEventListener('click', function() {
+            this.classList.toggle('active');
+        });
+        document.querySelector('.news3').addEventListener('click', function() {
+            this.classList.toggle('active');
+        });
+        document.querySelector('.news4').addEventListener('click', function() {
+            this.classList.toggle('active');
+        });
+        document.querySelector('.news5').addEventListener('click', function() {
+            this.classList.toggle('active');
+        });
+        document.querySelector('.news6').addEventListener('click', function() {
+            this.classList.toggle('active');
+        });
+        
+    </script>
+</body>
+</html>

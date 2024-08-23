@@ -1,7 +1,7 @@
 from app import app,db, session
 from flask import render_template, redirect, url_for, flash, request, jsonify
-from app.forms import DiabetesForm,OtpForm,SignInForm,SignUpForm,LiverForm,KidneyForm,XrayForm,ReminderForm,UserProfileForm,FeedbackForm,ChatbotForm,DietChart,DoctorProfileForm
-from app.models import User, Checkup, Kidney, Liver,Message, Reminder, Doctor
+from app.forms import DiabetesForm,OtpForm,SignInForm,SignUpForm,LiverForm,KidneyForm,XrayForm,ReminderForm,UserProfileForm,FeedbackForm,ChatbotForm,DietChart,DoctorProfileForm,UserAskForm,RetailerReplyForm,AppointmentForm
+from app.models import User, Checkup, Kidney, Liver,Message, Reminder, Doctor,FormMessage, Appointment, Shop
 from app.mails import send_email
 import numpy as np
 import pickle
@@ -44,6 +44,11 @@ def get_current_doctor():
         return Doctor.query.get(session['doctor_id'])
     return None
 
+def get_current_shop():
+    if 'shop_id' in session:
+        return Shop.query.get(session['shop_id'])
+    return None
+
 def login_required_user(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -63,10 +68,58 @@ def login_required_doctor(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def login_required_shop(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'shop_id' not in session:
+            flash('Please log in to access this page.', 'warning')
+            return redirect(url_for('shoplogin'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def update_value_in_row_and_column(table, filter_column_name, filter_value, target_column_name, new_value):
+    # Step 1: Search for the row where filter_column_name equals filter_value
+    record = table.query.filter(getattr(table, filter_column_name) == filter_value).first()
+    
+    if not record:
+        raise ValueError(f"No record found where '{filter_column_name}' equals '{filter_value}'.")
+
+    # Step 2: Check if the target column exists
+    if not hasattr(record, target_column_name):
+        raise ValueError(f"Column '{target_column_name}' does not exist in the table.")
+    
+    # Step 3: Update the value in the target column
+    setattr(record, target_column_name, new_value)
+    
+    # Commit the changes to the database
+    db.session.commit()
+
+    return f"Updated '{target_column_name}' with value '{new_value}' where '{filter_column_name}' equals '{filter_value}'."
+
+def update_val_to_no(table, filter_column_name, filter_value, target_column_name, new_value):
+    record = table.query.filter(getattr(table, filter_column_name) == filter_value).first()
+    
+    if not record:
+        raise ValueError(f"No record found where '{filter_column_name}' equals '{filter_value}'.")
+
+    # Step 2: Check if the target column exists
+    if not hasattr(record, target_column_name):
+        raise ValueError(f"Column '{target_column_name}' does not exist in the table.")
+    
+    # Step 3: Update the value in the target column
+    setattr(record, target_column_name, new_value)
+    
+    # Commit the changes to the database
+    db.session.commit()
+
+    return f"Updated '{target_column_name}' with value '{new_value}' where '{filter_column_name}' equals '{filter_value}'."
+
+
 valid_room_codes = {}
 
 def generate_room_code():
     return str(random.randint(1000, 9999))
+
 
 phone=0
 name=[]
@@ -150,7 +203,7 @@ def api_test():
 @login_required_user
 def dashboard():
     flash('This is a flash message with bounce effect!', category='success')
-
+    doctors=Doctor.query.all()
     feedback_form = FeedbackForm()
     dietchart = DietChart()
 
@@ -186,7 +239,7 @@ def dashboard():
     if not current_user:
         return redirect(url_for("login"))
 
-    return render_template('dashboard.html', user_data=current_user, feedback_form=feedback_form,dietchart=dietchart)
+    return render_template('dashboard.html', user_data=current_user,doctors=doctors, feedback_form=feedback_form,dietchart=dietchart)
 
 
 @app.route('/diet_chart_maker')
@@ -289,6 +342,17 @@ def doctor_profile():
             user.age = docform.age.data
         if docform.available.data:
             print(docform.available.data)
+            if docform.available.data=="No":
+                temp="slot"
+                for i in range(1, 19):
+                    slots=temp+str(i)
+                    result=update_val_to_no(Appointment, 'doctor_id', user.id, slots, True)
+
+            else:
+                temp="slot"
+                for i in range(1, 19):
+                    slots=temp+str(i)
+                    result=update_val_to_no(Appointment, 'doctor_id', user.id, slots, False)
 
             user.availability = docform.available.data
         if docform.specialization.data:
@@ -308,17 +372,98 @@ def doctor_profile():
 
     return render_template('doctor_profile.html',user=user,user_data=get_current_doctor(),docform=docform,feedback_form=feedback_form)
 
-@app.route('/community-support',methods=['GET','POST'])
-@login_required_user
-def community():
+@app.route('/shop-sign-in', methods=['GET','POST'])
+def shoplogin():
+    form=SignInForm()
+    if form.validate_on_submit():
+        with app.app_context():
+            attempted_user=Shop.query.filter_by(username=form.username.data).first()
+            if attempted_user and attempted_user.check_password_correction(attempted_password=form.password.data):
+                session['shop_id']=attempted_user.id
+                flash(f'You have successfully logged in as : {attempted_user.username}' , category='success')
+                return redirect(url_for('shop_dashboard'))
+            else:
+                flash(f'Username and password do not match ! Please try again', category='error')
+                flash(f'OTP does not match', category='error')
+
+    return render_template('shop_login.html',signin=form)
+
+@app.route('/shop-sign-up', methods=['GET','POST'])
+def shop_signup():
+    form=SignUpForm()
+    if form.validate_on_submit():
+        global user_details
+        user_details.append(form.username.data)
+        user_details.append(form.email_address.data)
+        user_details.append(form.password.data)
+        global otp
+        otp=random.randint(100000, 999999)
+        get_otp.append(otp)
+        send_email(form.email_address.data,"Medassis Verification", f"Welcome to Medassis !!!\n Your OTP for verification is {otp}. Please enter your OTP to create an account.")
+        return redirect(url_for('shop_otp'))
+            
+        #else:
+    if form.errors != {}:
+        for err_msg in form.errors.values():
+            flash(f'There was an error with creating a user: {err_msg}', category='error')
+
+    return render_template('shop_signup.html',signup=form)
+
+@app.route('/shop-otp', methods=['GET','POST'])
+def shop_otp():
+    otpform=OtpForm()
+    if otpform.validate_on_submit():
+        global user_details
+        global get_otp
+        print("IN OTP")
+        # Access form data
+        otpnum=int(str(otpform.otp1.data)+str(otpform.otp2.data)+str(otpform.otp3.data)+str(otpform.otp4.data)+str(otpform.otp5.data)+str(otpform.otp6.data))
+        
+        print(otpnum)
+        print(get_otp)
+        flash("OTP Submited!", category='success')
+        if(otpnum==get_otp[0]):
+            with app.app_context():
+                user_data=Shop(username=user_details[0],
+                                email_address=user_details[1],
+                                password=user_details[2])
+                            
+                db.session.add(user_data)
+                db.session.commit()
+                # login_user(user_data)
+                session['shop_id']=user_data.id
+            
+            user_details.pop()
+            user_details.pop()
+            user_details.pop()
+            get_otp.pop()
+            return redirect(url_for('shop_dashboard'))
+        flash(f"Wrong OTP entered !!! Please enter a valid OTP !!!", category='error')
+    return render_template('shop_otp.html',otpform=otpform)
+
+@app.route('/shop-dashboard',methods=['GET','POST'])
+@login_required_shop
+def shop_dashboard():
     feedback_form = FeedbackForm()
     if feedback_form.validate_on_submit():
         response = feedback_form.feedback.data
         print(response)
-        send_email("anujkaushal1068@gmail.com", f"Feedback from {get_current_user().username}", f"From : {get_current_user().email_address}\nResponse : {feedback_form.feedback.data}")
+        send_email("anujkaushal1068@gmail.com", f"Feedback from {get_current_user().username}", f"From : {get_current_user().email_address}<br/>Response : {feedback_form.feedback.data}")
         print("sent mail")
-        return redirect(url_for('community'))
-    return render_template('community.html',user_data=get_current_user().username, feedback_form=feedback_form)
+        return redirect(url_for('shop_dashboard'))
+    current_shop = get_current_shop()
+    if not current_shop:
+        return redirect(url_for("shoplogin"))
+
+    return render_template('shop_dashboard.html', user_data=current_shop, feedback_form=feedback_form)
+
+@app.route('/shop-logout')
+@login_required_shop
+def shop_logout():
+    print("Logout")
+    # logout_user()
+    session.pop('shop_id', None)
+    return redirect(url_for('user_doc'))
 
 @app.route('/map',methods=['GET','POST'])
 @login_required_user
@@ -335,6 +480,21 @@ def usermap():
         print("sent mail")
         return redirect(url_for('dashboard'))
     return render_template('map.html', pincode=user_data.pincode,user_data=get_current_user())
+
+
+@app.route('/community-support',methods=['GET','POST'])
+@login_required_user
+def community():
+    feedback_form = FeedbackForm()
+    if feedback_form.validate_on_submit():
+        response = feedback_form.feedback.data
+        print(response)
+        send_email("anujkaushal1068@gmail.com", f"Feedback from {get_current_user().username}", f"From : {get_current_user().email_address}\nResponse : {feedback_form.feedback.data}")
+        print("sent mail")
+        return redirect(url_for('community'))
+    return render_template('community.html',user_data=get_current_user().username, feedback_form=feedback_form)
+
+
 
 @socketio.on('send_message')
 def handle_send_message(data):
@@ -373,35 +533,147 @@ def load_messages():
     print(f"Loaded messages: {messages_data}")
     return jsonify({'messages': messages_data})
 
+
+@app.route('/medicine-platform', methods=['GET', 'POST'])
+def medicine_platform():
+    useraskform = UserAskForm()
+    feedback_form = FeedbackForm()
+
+    if useraskform.validate_on_submit():
+        
+        new_message = FormMessage(
+            medicine_name=useraskform.medicine_name.data,
+            user_name=useraskform.user_name.data,
+            user_pincode=useraskform.user_pincode.data,
+            user_city=useraskform.user_city.data,
+            msg_type='ask'
+        )
+        db.session.add(new_message)
+        db.session.commit()
+        return redirect(url_for('medicine_platform'))
+    messages = FormMessage.query.order_by(FormMessage.timestamp.asc()).all()
+
+    return render_template(
+        'medicine-platform.html',
+        user_data=get_current_user(),
+        feedback_form=feedback_form,
+        useraskform=useraskform,
+        messages=messages
+    )
+    
+@app.route('/retail', methods=['GET', 'POST'])
+def retail():
+    retailerreplyform = RetailerReplyForm()
+    feedback_form = FeedbackForm()
+    if retailerreplyform.validate_on_submit():
+        
+        new_message = FormMessage(
+            medicine_name=retailerreplyform.medicine_name.data,
+            user_name=retailerreplyform.user_name.data,
+            user_pincode=retailerreplyform.user_pincode.data,
+            user_city=retailerreplyform.user_city.data,
+            shop_name=retailerreplyform.shop_name.data,
+            location=retailerreplyform.address.data,
+            price=retailerreplyform.price.data,
+            msg_type ='reply'
+        )
+        
+        db.session.add(new_message)
+        db.session.commit()
+        return redirect(url_for('retail'))
+
+    messages = FormMessage.query.order_by(FormMessage.timestamp.asc()).all()
+
+    return render_template(
+        'retail.html',
+        user_data=get_current_user(),
+        feedback_form=feedback_form,
+        retailerreplyform=retailerreplyform,
+        messages=messages
+    )
+
+
+
 @app.route('/doc_or_user')
 def user_doc():
     return render_template('user_or_doctor.html')
 
-@app.route('/appointment', methods=['GET', 'POST'])
-def appointment():
-    doctors = Doctor.query.all()
 
-    # Convert doctors to a list of dictionaries for JSON serialization
-    doctors_data = [
-        {
-            'id': doctor.id,
-            'username': doctor.username,
-            'specialization': doctor.specialization,
-            'availability': doctor.availability,
-            'phone': doctor.phone,
-            'city': doctor.city,
-            'pincode': doctor.pincode
-        }
-        for doctor in doctors
+
+@app.route('/appointment/<int:doctor_id>', methods=['GET', 'POST'])
+def appointment(doctor_id):
+    appointmentform = AppointmentForm()
+
+    # Set the doctorId field's data before rendering the form
+    appointmentform.doctorId.data = doctor_id
+
+    # Check for existing appointments for this doctor
+    appointment = Appointment.query.filter_by(doctor_id=doctor_id).first()
+
+    # Define the time slot choices with both label update and disabling logic
+    appointmentform.time_slot.choices = [
+        ('slot1', '10:00-10:30am') if not appointment or not appointment.slot1 else ('slot1', '10:00-10:30am (Booked)'),
+        ('slot2', '10:30-11:00am') if not appointment or not appointment.slot2 else ('slot2', '10:30-11:00am (Booked)'),
+        ('slot3', '11:00-11:30am') if not appointment or not appointment.slot3 else ('slot3', '11:00-11:30am (Booked)'),
+        ('slot4', '11:30-12:00pm') if not appointment or not appointment.slot4 else ('slot4', '11:30-12:00pm (Booked)'),
+        ('slot5', '12:00-12:30pm') if not appointment or not appointment.slot5 else ('slot5', '12:00-12:30pm (Booked)'),
+        ('slot6', '12:30-1:00pm') if not appointment or not appointment.slot6 else ('slot6', '12:30-1:00pm (Booked)'),
+        ('slot7', '4:00-4:30pm') if not appointment or not appointment.slot7 else ('slot7', '4:00-4:30pm (Booked)'),
+        ('slot8', '4:30-5:00pm') if not appointment or not appointment.slot8 else ('slot8', '4:30-5:00pm (Booked)'),
+        ('slot9', '5:00-5:30pm') if not appointment or not appointment.slot9 else ('slot9', '5:00-5:30pm (Booked)'),
+        ('slot10', '5:30-6:00pm') if not appointment or not appointment.slot10 else ('slot10', '5:30-6:00pm (Booked)'),
+        ('slot11', '6:00-6:30pm') if not appointment or not appointment.slot11 else ('slot11', '6:00-6:30pm (Booked)'),
+        ('slot12', '6:30-7:00pm') if not appointment or not appointment.slot12 else ('slot12', '6:30-7:00pm (Booked)'),
+        ('slot13', '7:00-7:30pm') if not appointment or not appointment.slot13 else ('slot13', '7:00-7:30pm (Booked)'),
+        ('slot14', '7:30-8:00pm') if not appointment or not appointment.slot14 else ('slot14', '7:30-8:00pm (Booked)'),
+        ('slot15', '8:00-8:30pm') if not appointment or not appointment.slot15 else ('slot15', '8:00-8:30pm (Booked)'),
+        ('slot16', '8:30-9:00pm') if not appointment or not appointment.slot16 else ('slot16', '8:30-9:00pm (Booked)'),
+        ('slot17', '9:00-9:30pm') if not appointment or not appointment.slot17 else ('slot17', '9:00-9:30pm (Booked)'),
+        ('slot18', '9:30-10:00pm') if not appointment or not appointment.slot18 else ('slot18', '9:30-10:00pm (Booked)')
     ]
+    doctor = Doctor.query.filter_by(id=doctor_id).first()
+    doctor_mail=doctor.email_address
+    if appointmentform.validate_on_submit():
+        timeslot = appointmentform.time_slot.data
+        date = appointmentform.date.data
+        doctorId = appointmentform.doctorId.data
+        with app.app_context():
+            try:
+                result=update_value_in_row_and_column(Appointment, 'doctor_id', doctorId, timeslot, True)
+                print(result)
+                # Process the form data (e.g., save to the database)
+                print("Form Submitted:", timeslot, date, doctorId)
+                print(doctor_mail)
+                send_email(doctor_mail, "Appointment Fixed", "Ganduu")
+
+                return redirect(url_for('dashboard'))
+            except ValueError as e:
+                print(e)
+
+    doctor = Doctor.query.filter_by(id=doctor_id).first()
+
+    if doctor is None:
+        return "Doctor not found", 404
 
     feedback_form = FeedbackForm()
     if feedback_form.validate_on_submit():
         response = feedback_form.feedback.data
-        send_email("anujkaushal1068@gmail.com", f"Feedback from {get_current_user().username}", f"From : {get_current_user().email_address}\nResponse : {response}")
-        return redirect(url_for('appointment'))
+        send_email(
+            "anujkaushal1068@gmail.com", 
+            f"Feedback from {get_current_user().username}", 
+            f"From: {get_current_user().email_address}\nResponse: {response}"
+        )
+        
+        return redirect(url_for('appointment', doctor_id=doctor.id))
 
-    return render_template('appointment.html', user_data=get_current_user(), feedback_form=feedback_form, doctors_data=doctors_data)
+    return render_template(
+        'appointment.html',
+        user_data=get_current_user(),
+        appointmentform=appointmentform,
+        feedback_form=feedback_form,
+        doctor=doctor
+    )
+
 
 
 @app.route('/sign-in', methods=['GET','POST'])
@@ -559,6 +831,11 @@ def doctor_otp():
                 # login_user(user_data)
                 session['doctor_id']=user_data.id
             
+            with app.app_context():
+                    appointment=Appointment(doctor_id=get_current_doctor().id)
+                    db.session.add(appointment)
+                    db.session.commit()
+            
             user_details.pop()
             user_details.pop()
             user_details.pop()
@@ -588,6 +865,7 @@ def join():
             return redirect('/join')
     return render_template('join.html')
 
+
 @app.route('/create_room', methods=['GET'])
 def create_room():
     room_id = generate_room_code()
@@ -595,14 +873,6 @@ def create_room():
     print(f"Generated Room Code: {room_id}")
     return redirect('/join')
 
-
-# @app.route('/join', methods=['GET','POST'])
-# @login_required_user
-# def join():
-#     if request.method=="POST":
-#         room_id=request.form.get("roomID")
-#         return redirect(f"/meeting?roomID={room_id}")
-#     return render_template('join.html')
 
 @app.route('/diabetes-form', methods=['GET','POST'])
 def diabetes():
@@ -1225,6 +1495,7 @@ def x_ray():
 
 @app.route('/diabetesPlot')
 def index():
+    pio.templates.default = "plotly"
     df = pd.read_csv('app/static/diabetes_prediction_dataset.csv')
 
     diabetes_data = df[df['diabetes'] == 1]
@@ -1350,6 +1621,7 @@ def index():
 
 @app.route('/kidneyplot')
 def index7():
+    pio.templates.default = "plotly"
     df = pd.read_csv('app/static/kidneyData.csv')
     df_scatter = df.sample(n=250, random_state=42)
 
@@ -1458,9 +1730,9 @@ def live_data():
     fig_live.update_layout(width=700, height=700)
     return pio.to_html(fig_live, full_html=False)
 
-
 @app.route('/LiverPlot')
 def index8():
+    pio.templates.default = "plotly"
     df=pd.read_csv('app/static/Indian Liver Patient Dataset (ILPD).csv')
     df_disease = df[df['Selector'] == 2].head(250)  
 
@@ -1541,6 +1813,7 @@ def index8():
 
 @app.route('/reminder', methods=['GET','POST'])
 def reminder():
+    
     reminderform=ReminderForm()
     feedback_form = FeedbackForm()
     if reminderform.validate_on_submit():

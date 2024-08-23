@@ -177,6 +177,36 @@ content %}
           <button class="col-4" id="med-ai-button" type="button" data-bs-toggle="modal"
             data-bs-target="#diet-modal">Medicine</button>
       </div>
+      <button class="btn btn-warning" id="" type="button" data-bs-toggle="modal"
+          data-bs-target="#doc-modal" >Doctor Search</button>
+          <div class="modal fade" id="doc-modal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+              <div class="modal-content bg-white">
+                <div class="modal-header">
+                  <h1 class="modal-title fs-5" id="exampleModalLabel">Appoint Doctor</h1>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body px-3">
+                  <input type="text" name="doctorname" class="w-100 px-2 px-md-3 py-2 rounded-pill bg-body-tertiary border-0" placeholder="Seacrh the doctor...."/>
+                  <div class="h-100 text-dark px-3 mt-2" style="overflow-y: auto;">
+                    {% for doctor in doctors %}
+                    <a href="{{ url_for('appointment', doctor_id=doctor.id) }}" class="text-decoration-none text-dark">
+                      <li class="d-flex py-3 px-3 rounded doctor-list justify-content-between" data-doctor-id="{{ doctor.id }}">
+                        <div>
+                          <i class="fa-solid pe-2 fa-user-doctor"></i>{{ doctor.username }}
+                        </div>
+                        <span class="badge d-flex align-items-center text-bg-dark">{{ doctor.specialization }}</span>
+                      </li>
+                    </a>
+                    <hr class="text-secondary p-0 m-0" />
+                    {% endfor %}
+                  </div>
+
+                </div>
+                
+              </div>
+            </div>
+          </div>
       <div class="row gap-0 mt-4">
         <div class="col-12 col-md-8  px-2 ">
           <a href="{{ url_for('join') }}" style="text-decoration: none; color:black">

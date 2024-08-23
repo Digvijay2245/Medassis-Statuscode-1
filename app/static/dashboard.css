@@ -510,3 +510,10 @@
         transform: translate(60px, -32px) translateZ(0);
     }
 }
+
+.doctor-list{
+    transition: 200ms all cubic-bezier(0.19, 1, 0.22, 1);
+}
+.doctor-list:hover{
+    background: rgb(171, 255, 193);
+}
